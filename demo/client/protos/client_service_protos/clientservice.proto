@@ -1,0 +1,12 @@
+
+syntax = "proto3";
+
+package protos;
+
+option go_package = "genproto/client_service";
+
+import "client_service_protos/client.proto";
+
+service ClientService {
+  rpc SearchClient(ClientSearchRequest) returns (Client){}
+}

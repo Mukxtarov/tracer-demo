@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package protos;
+
+option go_package = "genproto/client_service";
+
+message ClientSearchRequest {
+  string uid = 1;
+}
+
+message Client {
+  string uid = 1;
+  string name = 2;
+}
+
+
+
