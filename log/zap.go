@@ -30,7 +30,7 @@ func NewZapLogger(level zapcore.Level) (*zapLogger, func()) {
 	)
 
 	// From a zapcore.Core, it's easy to construct a Logger.
-	logger := zap.New(core)
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 
 	// teardown
 	tr := func() {
