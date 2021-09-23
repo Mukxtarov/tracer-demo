@@ -3,14 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
 	"github.com/alloykh/tracer-demo/log"
 	"github.com/alloykh/tracer-demo/tracing"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"        // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery" // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"      // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
+
+	GRPCMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"        // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
+	GRPCRecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery" // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
+	GRPCCtxTags "github.com/grpc-ecosystem/go-grpc-middleware/tags"      // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
+	GRPCOpenTracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	//GRPCZap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-lib/metrics"
-	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	JProm "github.com/uber/jaeger-lib/metrics/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -36,7 +41,7 @@ func main() {
 
 	ctx := getDefaultContext()
 
-	metricsFactory := jprom.New().Namespace(metrics.NSOptions{Name: serviceName, Tags: nil})
+	metricsFactory := JProm.New().Namespace(metrics.NSOptions{Name: serviceName, Tags: nil})
 
 	// logger
 	logr := log.NewFactory("zap", zapcore.DebugLevel)
@@ -85,11 +90,11 @@ func main() {
 func newGrpcServer(logr *log.Factory) (*server, func()) {
 
 	s := grpc.NewServer(
-		grpc_middleware.WithUnaryServerChain(
-			grpc_recovery.UnaryServerInterceptor(),
-			grpc_ctxtags.UnaryServerInterceptor(),
-			//grpc_zap.UnaryServerInterceptor(logr),
-			// opentracing.UnaryServerInterceptor(), // we can later add those interceptors -
+		GRPCMiddleware.WithUnaryServerChain(
+			GRPCRecovery.UnaryServerInterceptor(),
+			GRPCCtxTags.UnaryServerInterceptor(),
+			//GRPCZap.UnaryServerInterceptor(logr.Default()),
+			GRPCOpenTracing.UnaryServerInterceptor(), // we can later add those interceptors -
 			// prometheus.UnaryServerInterceptor,  // - for authentication and monitoring purposes
 			// auth.UnaryServerInterceptor(myAuthFunction),
 		),
@@ -109,7 +114,7 @@ func newGrpcServer(logr *log.Factory) (*server, func()) {
 
 func (s *server) setListener() error {
 
-	listener, errOnListen := net.Listen("tcp", fmt.Sprintf("%v%v", "localhost", defaultGrpcPort))
+	listener, errOnListen := net.Listen("tcp", defaultGrpcPort)
 
 	if errOnListen != nil {
 
@@ -125,9 +130,9 @@ func (s *server) setListener() error {
 
 func (s *server) run() (err error) {
 
-	//service := NewService(s.logr)
+	service := NewService(s.logr)
 
-	//client_service.RegisterClientServiceServer(s.gRPCServer, service)
+	client_service.RegisterClientServiceServer(s.gRPCServer, service)
 
 	reflection.Register(s.gRPCServer)
 

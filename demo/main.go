@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,11 +41,18 @@ func main() {
 	tracer, tr := tracing.InitJaeger(serviceName, metricsFactory, logr)
 	tearDowns = append(tearDowns, tr)
 
+	// Set tracer as global
 	opentracing.SetGlobalTracer(tracer)
 
-	httpServer := NewServer("localhost", 8077, logr.Default(), tracer)
+	// init grpc clients
+	grpclients, err := NewGRPClients()
+	if err != nil {
+		logr.Default().Fatal("grpc clients init", zap.Any("err", err.Error()))
+	}
 
-	err := httpServer.Run()
+	httpServer := NewServer("localhost", 8077, logr.Default(), tracer, grpclients)
+
+	err = httpServer.Run()
 
 	if err != nil {
 		logr.Default().Fatal("http server run", zap.Any("err", err.Error()))
@@ -62,6 +70,10 @@ func main() {
 		f()
 	}
 
+	for _, f := range grpclients.TearDowns {
+		f(logr)
+	}
+
 	if err = httpServer.shutdown(ctxShutDown); err != nil {
 		logr.Default().Error("http server shutdown", zap.Any("err", err.Error()))
 	}
@@ -72,12 +84,13 @@ func main() {
 }
 
 type server struct {
-	router *gin.Engine
-	logr   log.Logger
-	serv   *http.Server
+	router     *gin.Engine
+	logr       log.Logger
+	serv       *http.Server
+	grpclients *Clients
 }
 
-func NewServer(host string, port int, logr log.Logger, tracer opentracing.Tracer) *server {
+func NewServer(host string, port int, logr log.Logger, tracer opentracing.Tracer, grpclients *Clients) *server {
 
 	ginRouter := gin.New()
 
@@ -92,15 +105,16 @@ func NewServer(host string, port int, logr log.Logger, tracer opentracing.Tracer
 	}
 
 	return &server{
-		router: ginRouter,
-		logr:   logr,
-		serv:   serv,
+		router:     ginRouter,
+		logr:       logr,
+		serv:       serv,
+		grpclients: grpclients,
 	}
 }
 
 func (s *server) Run() (err error) {
 
-	s.router.GET("/order", orderHandler)
+	s.router.GET("/order", s.orderHandler)
 
 	go func() {
 		if err = s.serv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -118,11 +132,23 @@ func (s *server) shutdown(ctx context.Context) (err error) {
 	return s.serv.Shutdown(ctx)
 }
 
-func orderHandler(c *gin.Context) {
+func (s *server) orderHandler(c *gin.Context) {
 
 	// 1. search a client in client service via grpc call (pass span context)
 
-	c.JSON(http.StatusOK, gin.H{"result": "okay"})
+	user, err := s.grpclients.UserClient.SearchClient(c.Request.Context(), &client_service.ClientSearchRequest{Uid: "uuid"})
+
+
+	// custom spanning
+	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "handler response c.Json")
+	defer span.Finish()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"result": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
 func getDefaultContext() context.Context {
