@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package protos;
+
+option go_package = "genproto/inventory_service";
+
+import "inventory_service_protos/inventory.proto";
+import "google/protobuf/empty.proto";
+
+
+service InventoryService{
+  rpc AllocateProduct(AllocProdRequest) returns (google.protobuf.Empty);
+}

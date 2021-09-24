@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
+	"github.com/alloykh/tracer-demo/demo/protos/genproto/client_service"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,7 +50,7 @@ func main() {
 		logr.Default().Fatal("grpc clients init", zap.Any("err", err.Error()))
 	}
 
-	httpServer := NewServer("localhost", 8077, logr.Default(), tracer, grpclients)
+	httpServer := NewServer("localhost", 8077, logr, tracer, grpclients)
 
 	err = httpServer.Run()
 
@@ -58,7 +58,7 @@ func main() {
 		logr.Default().Fatal("http server run", zap.Any("err", err.Error()))
 	}
 
-	// graceful shutdown
+	// interruption signal - graceful shutdown
 	<-ctx.Done()
 
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -85,12 +85,12 @@ func main() {
 
 type server struct {
 	router     *gin.Engine
-	logr       log.Logger
+	logr       *log.Factory
 	serv       *http.Server
 	grpclients *Clients
 }
 
-func NewServer(host string, port int, logr log.Logger, tracer opentracing.Tracer, grpclients *Clients) *server {
+func NewServer(host string, port int, logr *log.Factory, tracer opentracing.Tracer, grpclients *Clients) *server {
 
 	ginRouter := gin.New()
 
@@ -118,12 +118,12 @@ func (s *server) Run() (err error) {
 
 	go func() {
 		if err = s.serv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.logr.Error("http listen and serve", zap.Any("err", err.Error()))
+			s.logr.Default().Error("http listen and serve", zap.Any("err", err.Error()))
 		}
-		s.logr.Info("HTTP SERVER SHUTDOWN", zap.Any("OUTCOME", "successful"))
+		s.logr.Default().Info("HTTP SERVER SHUTDOWN", zap.Any("OUTCOME", "successful"))
 	}()
 
-	s.logr.Debug("HTTP SERVER RUNNING...", zap.Any("ADDR", s.serv.Addr))
+	s.logr.Default().Debug("HTTP SERVER RUNNING...", zap.Any("ADDR", s.serv.Addr))
 
 	return
 }
@@ -134,9 +134,20 @@ func (s *server) shutdown(ctx context.Context) (err error) {
 
 func (s *server) orderHandler(c *gin.Context) {
 
-	// 1. search a client in client service via grpc call (pass span context)
+	ctx := c.Request.Context()
 
-	user, err := s.grpclients.UserClient.SearchClient(c.Request.Context(), &client_service.ClientSearchRequest{Uid: "uuid"})
+	// 1. search a client in client service via grpc call (pass span context)
+	user, err := s.grpclients.UserClient.SearchClient(ctx, &client_service.ClientSearchRequest{Uid: "uuid"})
+
+	if err != nil {
+		s.logr.For(ctx).Error("search client call", zap.String("err", err.Error()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+
+	// 2. Call order service via http
+
 
 
 	// custom spanning

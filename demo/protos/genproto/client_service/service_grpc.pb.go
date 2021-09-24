@@ -95,5 +95,5 @@ var ClientService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "client_service_protos/clientservice.proto",
+	Metadata: "client_service_protos/service.proto",
 }

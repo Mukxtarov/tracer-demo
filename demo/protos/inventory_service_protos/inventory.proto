@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package protos;
+
+option go_package = "genproto/inventory_service";
+
+message AllocProdRequest {
+  string id = 1;
+  uint32 quantity = 2;
+}
+
+message AllocProdResponse {
+
+}

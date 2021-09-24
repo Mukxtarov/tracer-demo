@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
+	"github.com/alloykh/tracer-demo/demo/protos/genproto/client_service"
 	"github.com/alloykh/tracer-demo/log"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -33,7 +33,7 @@ func NewGRPClients() (clients *Clients, err error) {
 
 func callToUserClient() (client_service.ClientServiceClient, func(log *log.Factory), error) {
 
-	connStr := fmt.Sprintf("%v%v", "localhost", ":7081")
+	connStr := fmt.Sprintf("%v%v", "localhost", ":7050")
 
 	retryOpts := []grpcRetry.CallOption{
 		grpcRetry.WithBackoff(grpcRetry.BackoffLinear(100 * time.Millisecond)),

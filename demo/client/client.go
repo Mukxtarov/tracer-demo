@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
+	"github.com/alloykh/tracer-demo/demo/protos/genproto/client_service"
 	"github.com/alloykh/tracer-demo/log"
 	"github.com/alloykh/tracer-demo/tracing"
 
@@ -29,7 +29,7 @@ var tearDowns []func()
 
 var serviceName = "client_service"
 
-var defaultGrpcPort = ":7081"
+var defaultGrpcPort = ":7050"
 
 type server struct {
 	gRPCServer *grpc.Server

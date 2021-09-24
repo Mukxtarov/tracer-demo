@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/alloykh/tracer-demo/demo/client/protos/genproto/client_service"
+	"github.com/alloykh/tracer-demo/demo/protos/genproto/client_service"
 	"github.com/alloykh/tracer-demo/log"
 	"go.uber.org/zap"
 )
