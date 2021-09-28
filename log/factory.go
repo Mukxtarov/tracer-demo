@@ -3,6 +3,8 @@ package log
 import (
 	"context"
 	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -28,17 +30,19 @@ func (f *Factory) Default() Logger {
 // contains an OpenTracing span, all logging calls are also
 // echo-ed into the span.
 func (f Factory) For(ctx context.Context) Logger {
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		//logger := spanLogger{span: span, logger: f.logger}
-		//
-		//if jaegerCtx, ok := span.Context().(jaeger.SpanContext); ok {
-		//	logger.spanFields = []zapcore.Field{
-		//		zap.String("trace_id", jaegerCtx.TraceID().String()),
-		//		zap.String("span_id", jaegerCtx.SpanID().String()),
-		//	}
-		//}
 
-		return f.Default()
+	if span := opentracing.SpanFromContext(ctx); span != nil {
+
+		logger := spanLogger{span: span, logger: f.logger}
+
+		if jaegerCtx, ok := span.Context().(jaeger.SpanContext); ok {
+			logger.spanFields = []zapcore.Field{
+				zap.String("trace_id", jaegerCtx.TraceID().String()),
+				zap.String("span_id", jaegerCtx.SpanID().String()),
+			}
+		}
+
+		return logger
 	}
 	return f.Default()
 }

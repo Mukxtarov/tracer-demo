@@ -21,14 +21,18 @@ import (
 	"github.com/opentracing/opentracing-go"
 	tag "github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type spanLogger struct {
-	logger     *zap.Logger
+	logger     Logger
 	span       opentracing.Span
 	spanFields []zapcore.Field
+}
+
+func (sl spanLogger) Debug(msg string, fields ...zapcore.Field) {
+	sl.logToSpan("debug", msg, fields...)
+	sl.logger.Debug(msg, append(sl.spanFields, fields...)...)
 }
 
 func (sl spanLogger) Info(msg string, fields ...zapcore.Field) {
@@ -37,6 +41,7 @@ func (sl spanLogger) Info(msg string, fields ...zapcore.Field) {
 }
 
 func (sl spanLogger) Error(msg string, fields ...zapcore.Field) {
+	sl.span.SetTag("error", true)
 	sl.logToSpan("error", msg, fields...)
 	sl.logger.Error(msg, append(sl.spanFields, fields...)...)
 }

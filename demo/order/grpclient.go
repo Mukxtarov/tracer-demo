@@ -2,23 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/alloykh/tracer-demo/demo/protos/genproto/client_service"
+	"github.com/alloykh/tracer-demo/demo/protos/genproto/inventory_service"
 	"github.com/alloykh/tracer-demo/log"
+	grpcRetry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	GRPCOpenTracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"time"
-
-	grpcRetry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	GRPCOpenTracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Clients struct {
-	UserClient      client_service.ClientServiceClient
+	InventoryClient inventory_service.InventoryServiceClient
 	TearDowns       []func(log *log.Factory)
 }
+
 
 func NewGRPClients() (clients *Clients, err error) {
 
@@ -38,18 +38,20 @@ func NewGRPClients() (clients *Clients, err error) {
 
 	interceptors := grpc.WithChainUnaryInterceptor(grpcRetry.UnaryClientInterceptor(retryOpts...), GRPCOpenTracing.UnaryClientInterceptor(tracingOpts...))
 
-	userClient, tr, err := callToUserClient(grpc.WithInsecure(), interceptors)
+	inventoryClient, tr, err := callToInventoryClient(grpc.WithInsecure(), interceptors)
 
-	clients.UserClient = userClient
+	clients.InventoryClient = inventoryClient
 
 	clients.TearDowns = append(clients.TearDowns, tr)
 
 	return
 }
 
-func callToUserClient(opt ...grpc.DialOption) (client_service.ClientServiceClient, func(log *log.Factory), error) {
 
-	connStr := fmt.Sprintf("%v%v", "localhost", ":7050")
+
+func callToInventoryClient(opt ...grpc.DialOption) (inventory_service.InventoryServiceClient, func(log *log.Factory), error) {
+
+	connStr := fmt.Sprintf("%v%v", "localhost", ":7051")
 
 	conn, err := grpc.Dial(
 		connStr,
@@ -57,7 +59,7 @@ func callToUserClient(opt ...grpc.DialOption) (client_service.ClientServiceClien
 	)
 
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "grpc-clients-callToUserClient()")
+		return nil, nil, errors.Wrap(err, "grpc-clients-callToInventoryClient()")
 	}
 
 	tr := func(log *log.Factory) {
@@ -67,7 +69,6 @@ func callToUserClient(opt ...grpc.DialOption) (client_service.ClientServiceClien
 		}
 	}
 
-	return client_service.NewClientServiceClient(conn), tr, nil
+	return inventory_service.NewInventoryServiceClient(conn), tr, nil
 
 }
-

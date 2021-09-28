@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InventoryServiceClient interface {
-	AllocateProduct(ctx context.Context, in *AllocProdRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	AllocateProduct(ctx context.Context, in *AllocProductRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type inventoryServiceClient struct {
@@ -30,7 +30,7 @@ func NewInventoryServiceClient(cc grpc.ClientConnInterface) InventoryServiceClie
 	return &inventoryServiceClient{cc}
 }
 
-func (c *inventoryServiceClient) AllocateProduct(ctx context.Context, in *AllocProdRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *inventoryServiceClient) AllocateProduct(ctx context.Context, in *AllocProductRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/protos.InventoryService/AllocateProduct", in, out, opts...)
 	if err != nil {
@@ -43,14 +43,14 @@ func (c *inventoryServiceClient) AllocateProduct(ctx context.Context, in *AllocP
 // All implementations should embed UnimplementedInventoryServiceServer
 // for forward compatibility
 type InventoryServiceServer interface {
-	AllocateProduct(context.Context, *AllocProdRequest) (*empty.Empty, error)
+	AllocateProduct(context.Context, *AllocProductRequest) (*empty.Empty, error)
 }
 
 // UnimplementedInventoryServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedInventoryServiceServer struct {
 }
 
-func (UnimplementedInventoryServiceServer) AllocateProduct(context.Context, *AllocProdRequest) (*empty.Empty, error) {
+func (UnimplementedInventoryServiceServer) AllocateProduct(context.Context, *AllocProductRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AllocateProduct not implemented")
 }
 
@@ -66,7 +66,7 @@ func RegisterInventoryServiceServer(s grpc.ServiceRegistrar, srv InventoryServic
 }
 
 func _InventoryService_AllocateProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AllocProdRequest)
+	in := new(AllocProductRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func _InventoryService_AllocateProduct_Handler(srv interface{}, ctx context.Cont
 		FullMethod: "/protos.InventoryService/AllocateProduct",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).AllocateProduct(ctx, req.(*AllocProdRequest))
+		return srv.(InventoryServiceServer).AllocateProduct(ctx, req.(*AllocProductRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

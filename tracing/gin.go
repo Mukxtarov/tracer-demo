@@ -91,8 +91,6 @@ func Tracer(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 
 	handler := func(c *gin.Context) {
 
-		fmt.Println("tracer middleware call")
-
 		if !opts.spanFilter(c.Request) {
 			c.Next()
 			return
@@ -107,6 +105,7 @@ func Tracer(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 
 		// starting a new span for this request
 		span := tr.StartSpan(opName, ext.RPCServerOption(ctx))
+		defer span.Finish()
 
 		// set span tag info
 		ext.HTTPMethod.Set(span, c.Request.Method)
@@ -121,16 +120,12 @@ func Tracer(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 			opentracing.ContextWithSpan(c.Request.Context(), span),
 		)
 
-		// custom logs for this specific span
-		//span.LogFields(
-		//	log.String("event", "http request"),
-		//)
-
+		// proceed
 		c.Next()
 
-		ext.HTTPStatusCode.Set(span, uint16(c.Writer.Status()))
-		span.Finish()
+		code := uint16(c.Writer.Status())
 
+		ext.HTTPStatusCode.Set(span, code)
 	}
 
 	return handler

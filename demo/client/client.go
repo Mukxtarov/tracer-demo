@@ -11,8 +11,6 @@ import (
 	GRPCRecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery" // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
 	GRPCCtxTags "github.com/grpc-ecosystem/go-grpc-middleware/tags"      // grpc interceptors https://github.com/grpc-ecosystem/go-grpc-middleware
 	GRPCOpenTracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	//GRPCZap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-lib/metrics"
 	JProm "github.com/uber/jaeger-lib/metrics/prometheus"
@@ -93,8 +91,8 @@ func newGrpcServer(logr *log.Factory) (*server, func()) {
 		GRPCMiddleware.WithUnaryServerChain(
 			GRPCRecovery.UnaryServerInterceptor(),
 			GRPCCtxTags.UnaryServerInterceptor(),
-			//GRPCZap.UnaryServerInterceptor(logr.Default()),
 			GRPCOpenTracing.UnaryServerInterceptor(), // we can later add those interceptors -
+			//GRPCZap.UnaryServerInterceptor(logr.Default()),
 			// prometheus.UnaryServerInterceptor,  // - for authentication and monitoring purposes
 			// auth.UnaryServerInterceptor(myAuthFunction),
 		),
@@ -112,20 +110,13 @@ func newGrpcServer(logr *log.Factory) (*server, func()) {
 
 }
 
-func (s *server) setListener() error {
+func (s *server) setListener() (err error) {
 
-	listener, errOnListen := net.Listen("tcp", defaultGrpcPort)
-
-	if errOnListen != nil {
-
-		s.logr.Default().Error(errOnListen.Error())
-
-		return errOnListen
-	}
+	listener, err := net.Listen("tcp", defaultGrpcPort)
 
 	s.listener = listener
 
-	return nil
+	return
 }
 
 func (s *server) run() (err error) {

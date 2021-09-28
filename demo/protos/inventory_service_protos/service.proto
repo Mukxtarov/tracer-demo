@@ -9,5 +9,5 @@ import "google/protobuf/empty.proto";
 
 
 service InventoryService{
-  rpc AllocateProduct(AllocProdRequest) returns (google.protobuf.Empty);
+  rpc AllocateProduct(AllocProductRequest) returns (google.protobuf.Empty);
 }
